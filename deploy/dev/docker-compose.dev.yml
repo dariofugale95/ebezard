@@ -1,0 +1,74 @@
+#
+#
+# GESTIONE VARIABILI D'AMBIENTE (BACKEND E FRONTEND)
+#
+# Tutte le variabili di configurazione (backend e frontend, incluse le porte) sono centralizzate nei file:
+#   .env.dev  (per sviluppo, in questa stessa cartella)
+#   .env.prod (per produzione, in questa stessa cartella)
+#
+# Modifica questi file per cambiare le porte o le variabili di backend e frontend.
+# I docker-compose usano solo questi file come env_file per tutti i servizi.
+#
+services:
+  # Nome progetto/stack per i container
+  # Per ambiente DEV: ecommerce-builder-dev
+  # (Impostato tramite "name" o "-p" da CLI, oppure con "COMPOSE_PROJECT_NAME" nel file .env)
+  backend-dev:
+    build:
+      context: ../../ecommerce-builder-backend
+      dockerfile: Dockerfile-dev
+    container_name: ecommerce-builder-backend-dev
+    env_file:
+      - .env
+    environment:
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+    ports:
+      - "${BACKEND_PORT_SOURCE}:${BACKEND_PORT_TARGET}"
+    volumes:
+      - ../../ecommerce-builder-backend:/app
+    command: >
+      sh -c "python manage.py collectstatic --noinput && \
+             python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}"
+    depends_on:
+      - db-dev
+
+  frontend-dev:
+    build:
+      context: ../../ecommerce-builder-frontend/frontend
+      dockerfile: Dockerfile-dev
+    container_name: ecommerce-builder-frontend-dev
+    env_file:
+      - .env
+    environment:
+      VITE_TEST_ENV: ${VITE_TEST_ENV}
+      NGINX_PORT: ${NGINX_PORT}
+      NGINX_SERVER_NAME: ${NGINX_SERVER_NAME}
+      BACKEND_HOST: ${BACKEND_HOST}
+      BACKEND_PORT: ${BACKEND_PORT}
+    ports:
+      - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"
+    volumes:
+      - ../../ecommerce-builder-frontend/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend-dev
+
+  db-dev:
+    image: postgres:16-alpine
+    container_name: ecommerce-builder-db-dev
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PORT_TARGET: ${DB_PORT_TARGET}
+    ports:
+      - "${DB_PORT_SOURCE}:${DB_PORT_TARGET}"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+
+volumes:
+  pgdata-dev:

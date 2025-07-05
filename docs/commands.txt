@@ -1,0 +1,44 @@
+docker compose exec backend chmod +x /app/scripts/reset_db_and_migrations.sh   # (solo la prima volta)
+docker compose exec backend /app/scripts/reset_db_and_migrations.sh
+
+
+Ambiente di sviluppo (dev):
+
+Avvio (PowerShell): 
+.\deploy\dev\scripts\ps\start-dev.ps1
+
+Stop (PowerShell):
+.\deploy\dev\scripts\ps\stop-dev.ps1
+
+Stop e rimozione volumi (PowerShell):
+.\deploy\dev\scripts\ps\stop-dev.ps1 -Volumes
+
+Avvio (Bash):
+sh ./deploy/dev/scripts/sh/start-dev.sh
+
+Stop (Bash):
+sh ./deploy/dev/scripts/sh/stop-dev.sh
+
+Stop e rimozione volumi (Bash):
+sh ./deploy/dev/scripts/sh/stop-dev.sh --volumes
+
+
+Ambiente di produzione (prod):
+
+Avvio (PowerShell):
+.\deploy\prod\scripts\ps\start-prod.ps1
+
+Stop (PowerShell):
+.\deploy\prod\scripts\ps\stop-prod.ps1
+
+Stop e rimozione volumi (PowerShell):
+.\deploy\prod\scripts\ps\stop-prod.ps1 -Volumes
+
+Avvio (Bash):
+sh ./deploy/prod/scripts/sh/start-prod.sh
+
+Stop (Bash):
+sh ./deploy/prod/scripts/sh/stop-prod.sh
+
+Stop e rimozione volumi (Bash):
+sh ./deploy/prod/scripts/sh/stop-prod.sh --volumes
