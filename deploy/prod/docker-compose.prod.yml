@@ -16,7 +16,7 @@ services:
     build:
       context: ../../ecommerce-builder-backend
       dockerfile: Dockerfile-prod
-    container_name: ecommerce-builder-backend-prod
+    container_name: ${PROJECT_NAME}-backend-prod
     env_file:
       - .env
     environment:
@@ -37,12 +37,13 @@ services:
     build:
       context: ../../ecommerce-builder-frontend/frontend
       dockerfile: Dockerfile-prod
-    container_name: ecommerce-builder-frontend-prod
+    container_name: ${PROJECT_NAME}-frontend-prod
     env_file:
       - .env
     environment:
       VITE_TEST_ENV: ${VITE_TEST_ENV}
       VITE_BACKEND_URL: ${VITE_BACKEND_URL}
+      VITE_PROJECT_NAME: ${VITE_PROJECT_NAME}
       FRONTEND_PORT_TARGET: ${FRONTEND_PORT_TARGET}
     ports:
       - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"
@@ -54,7 +55,7 @@ services:
 
   db-prod:
     image: postgres:16-alpine
-    container_name: ecommerce-builder-db-prod
+    container_name: ${PROJECT_NAME}-db-prod
     env_file:
       - .env
     environment:
