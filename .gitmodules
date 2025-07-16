@@ -1,6 +1,6 @@
-[submodule "ecommerce-builder-backend"]
-    path = ecommerce-builder-backend
-    url = https://github.com/dariofugale95/ecommerce-builder-backend
-[submodule "ecommerce-builder-frontend"]
-    path = ecommerce-builder-frontend
-    url = https://github.com/dariofugale95/ecommerce-builder-frontend
+[submodule "ebezard-backend"]
+	path = ebezard-backend
+	url = https://github.com/dariofugale95/ebezard-backend
+[submodule "ebezard-frontend"]
+	path = ebezard-frontend
+	url = https://github.com/dariofugale95/ebezard-frontend

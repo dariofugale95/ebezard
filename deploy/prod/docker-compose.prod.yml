@@ -10,11 +10,11 @@
 ###############################################
 services:
   # Nome progetto/stack per i container
-  # Per ambiente PROD: ecommerce-builder-prod
+  # Per ambiente PROD: ebezard-prod
   # (Impostato tramite "name" o "-p" da CLI, oppure con "COMPOSE_PROJECT_NAME" nel file .env)
   backend-prod:
     build:
-      context: ../../ecommerce-builder-backend
+      context: ../../ebezard-backend
       dockerfile: Dockerfile-prod
     container_name: ${PROJECT_NAME}-backend-prod
     env_file:
@@ -26,8 +26,8 @@ services:
     ports:
       - "${BACKEND_PORT_SOURCE}:${BACKEND_PORT_TARGET}"
     volumes:
-      - ../../ecommerce-builder-backend:/app
-      - ../../ecommerce-builder-backend/media:/app/media
+      - ../../ebezard-backend:/app
+      - ../../ebezard-backend/media:/app/media
     command: >
       sh -c "python manage.py collectstatic --noinput && \
              python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}"
@@ -36,7 +36,7 @@ services:
 
   frontend-prod:
     build:
-      context: ../../ecommerce-builder-frontend/frontend
+      context: ../../ebezard-frontend/frontend
       dockerfile: Dockerfile-prod
     container_name: ${PROJECT_NAME}-frontend-prod
     env_file:
@@ -49,7 +49,7 @@ services:
     ports:
       - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"
     volumes:
-      - ../../ecommerce-builder-frontend/frontend:/app
+      - ../../ebezard-frontend/frontend:/app
       - /app/node_modules
     depends_on:
       - backend-prod

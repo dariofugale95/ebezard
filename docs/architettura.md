@@ -1,8 +1,8 @@
-# Ecommerce-Builder – Documento Architetturale
+# ebezard – Documento Architetturale
 
 ## 1. Overview
 
-Ecommerce-Builder è una piattaforma automatizzata per la generazione di siti e-commerce multi-tenant, con frontend e backend separati, automazione CI/CD e deploy su Azure. Supporta personalizzazione, automazione processi, pagamenti, spedizioni e scalabilità.
+ebezard è una piattaforma automatizzata per la generazione di siti e-commerce multi-tenant, con frontend e backend separati, automazione CI/CD e deploy su Azure. Supporta personalizzazione, automazione processi, pagamenti, spedizioni e scalabilità.
 
 ## 2. Architettura Generale
 
@@ -65,8 +65,8 @@ Ecommerce-Builder è una piattaforma automatizzata per la generazione di siti e-
 - `docs/` – Documentazione tecnica e architetturale
 - `deploy/` – Script e file Compose per dev/prod
   - `deploy/dev/` e `deploy/prod/`: compose, script shell (`sh/ps1`), env separati
-- `ecommerce-builder-backend/` – Codice Django, Dockerfile, env
-- `ecommerce-builder-frontend/` – Codice React/Vite, Dockerfile, env
+- `ebezard-backend/` – Codice Django, Dockerfile, env
+- `ebezard-frontend/` – Codice React/Vite, Dockerfile, env
 
 ### Naming convention
 

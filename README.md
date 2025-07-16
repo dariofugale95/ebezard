@@ -1,19 +1,19 @@
-# Ecommerce-Builder – Super-Repository di Orchestrazione
+# eBezard – Super-Repository di Orchestrazione
 
-Questo repository contiene tutta la logica di orchestrazione, i file di deploy, la documentazione e i riferimenti ai repository di backend e frontend per la piattaforma Ecommerce-Builder.
+Questo repository contiene tutta la logica di orchestrazione, i file di deploy, la documentazione e i riferimenti ai repository di backend e frontend per la piattaforma ebezard.
 
 ## Struttura del repository
 
 - `deploy/` – File di orchestrazione Docker Compose, script di avvio/stop per dev e prod
 - `docs/` – Documentazione tecnica, architetturale e diagrammi
-- `ecommerce-builder-backend/` – Submodule: codice Django REST API ([repo backend](https://github.com/dariofugale95/ecommerce-builder-backend))
-- `ecommerce-builder-frontend/` – Submodule: codice React/Vite ([repo frontend](https://github.com/dariofugale95/ecommerce-builder-frontend))
+- `ebezard-backend/` – Submodule: codice Django REST API ([repo backend](https://github.com/dariofugale95/ebezard-backend))
+- `ebezard-frontend/` – Submodule: codice React/Vite ([repo frontend](https://github.com/dariofugale95/ebezard-frontend))
 - `.gitignore` – Ignora file temporanei, ambienti virtuali, build, ecc.
 
 ## Come clonare il super-repo con i submodule
 
 ```sh
-git clone --recurse-submodules https://github.com/dariofugale95/ecommerce-builder.git
+git clone --recurse-submodules https://github.com/dariofugale95/ebezard.git
 ```
 Se hai già clonato senza submodule:
 ```sh
@@ -34,8 +34,8 @@ git submodule update --remote
 - **Non committare file sensibili o temporanei:** vedi `.gitignore`.
 
 ## Link ai repository principali
-- **Backend Django:** [ecommerce-builder-backend](https://github.com/dariofugale95/ecommerce-builder-backend)
-- **Frontend React/Vite:** [ecommerce-builder-frontend](https://github.com/dariofugale95/ecommerce-builder-frontend)
+- **Backend Django:** [ebezard-backend](https://github.com/dariofugale95/ebezard-backend)
+- **Frontend React/Vite:** [ebezard-frontend](https://github.com/dariofugale95/ebezard-frontend)
 
 ## Documentazione tecnica
 - Architettura: `docs/architettura.md`

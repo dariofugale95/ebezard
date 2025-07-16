@@ -1,4 +1,4 @@
-# Ecommerce-Builder – Guida Deploy & Struttura Ambiente
+# ebezard – Guida Deploy & Struttura Ambiente
 
 ## 1. Struttura delle Cartelle
 
