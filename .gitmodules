@@ -10,3 +10,6 @@
 [submodule "ebezard-sp"]
 	path = ebezard-sp
 	url = https://github.com/dariofugale95/ebezard-sp.git
+[submodule "ebezard-marketplace"]
+	path = ebezard-marketplace
+	url = https://github.com/dariofugale95/ebezard-marketplace.git
