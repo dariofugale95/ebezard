@@ -4,3 +4,9 @@
 [submodule "ebezard-frontend"]
 	path = ebezard-frontend
 	url = https://github.com/dariofugale95/ebezard-frontend
+[submodule "ebezard-apigateway"]
+	path = ebezard-apigateway
+	url = https://github.com/dariofugale95/ebezard-apigateway.git
+[submodule "ebezard-sp"]
+	path = ebezard-sp
+	url = https://github.com/dariofugale95/ebezard-sp.git

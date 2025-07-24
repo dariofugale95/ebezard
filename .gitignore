@@ -4,6 +4,7 @@
 **/migrations/
 **/migrations/*.py
 !**/migrations/__init__.py
+
 # Ambiente FE-LOCAL
 deploy/fe-local/
 # Node
