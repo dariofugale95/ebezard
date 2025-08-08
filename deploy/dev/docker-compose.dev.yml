@@ -1,18 +1,10 @@
 #
-#
-# GESTIONE VARIABILI D'AMBIENTE (BACKEND E FRONTEND)
-#
-# Tutte le variabili di configurazione (backend e frontend, incluse le porte) sono centralizzate nei file:
-#   .env.dev  (per sviluppo, in questa stessa cartella)
-#   .env.prod (per produzione, in questa stessa cartella)
-#
-# Modifica questi file per cambiare le porte o le variabili di backend e frontend.
-# I docker-compose usano solo questi file come env_file per tutti i servizi.
+# DOCKER COMPOSE FOR DEVELOPMENT ENVIRONMENT
+# All environment variables are managed in the .env file in this directory.
+# Modify the .env file to change ports or configuration for backend, frontend, apigateway, and database.
 #
 services:
-  # Nome progetto/stack per i container
-  # Per ambiente DEV: ebezard-dev
-  # (Impostato tramite "name" o "-p" da CLI, oppure con "COMPOSE_PROJECT_NAME" nel file .env)
+  # Backend service (Django)
   backend-dev:
     build:
       context: ../../ebezard-backend
@@ -21,20 +13,21 @@ services:
     env_file:
       - .env
     environment:
-      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
-      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
-      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}   # Django superuser username
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}         # Django superuser email
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}   # Django superuser password
     ports:
-      - "${BACKEND_PORT_SOURCE}:${BACKEND_PORT_TARGET}"
+      - "${BACKEND_PORT_SOURCE}:${BACKEND_PORT_TARGET}"          # Host:Container port mapping for backend
     volumes:
-      - ../../ebezard-backend:/app
-      - ../../ebezard-backend/media:/app/media
+      - ../../ebezard-backend:/app                               # Mount backend source code
+      - ../../ebezard-backend/media:/app/media                   # Mount media directory
     command: >
       sh -c "python manage.py collectstatic --noinput && \
-             python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}"
+             python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}" # Collect static files and start Django server
     depends_on:
-      - db-dev
+      - db-dev                                                   # Wait for database to be ready
 
+  # Frontend service (React)
   frontend-dev:
     build:
       context: ../../ebezard-frontend/frontend
@@ -45,32 +38,155 @@ services:
     env_file:
       - .env
     environment:
-      VITE_TEST_ENV: ${VITE_TEST_ENV}
-      VITE_BACKEND_URL: ${VITE_BACKEND_URL}
-      VITE_PROJECT_NAME: ${VITE_PROJECT_NAME}
-      FRONTEND_PORT_TARGET: ${FRONTEND_PORT_TARGET}
+      VITE_TEST_ENV: ${VITE_TEST_ENV}                            # Vite test environment flag
+      VITE_BACKEND_URL: ${VITE_BACKEND_URL}                      # Backend URL for frontend
+      VITE_PROJECT_NAME: ${VITE_PROJECT_NAME}                    # Project name for branding
+      FRONTEND_PORT_TARGET: ${FRONTEND_PORT_TARGET}              # Internal port for frontend
     ports:
-      - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"
+      - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"        # Host:Container port mapping for frontend
     volumes:
-      - ../../ebezard-frontend/frontend:/app
-      - /app/node_modules
+      - ../../ebezard-frontend/frontend:/app                     # Mount frontend source code
+      - /app/node_modules                                        # Persist node_modules for faster installs
     depends_on:
-      - backend-dev
+      - backend-dev                                              # Wait for backend to be ready
 
+  # Database service (PostgreSQL)
   db-dev:
     image: postgres:16-alpine
     container_name: ${PROJECT_NAME}-db-dev
     env_file:
       - .env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_PORT_TARGET: ${DB_PORT_TARGET}
+      POSTGRES_DB: ${POSTGRES_DB}                                # PostgreSQL database name
+      POSTGRES_USER: ${POSTGRES_USER}                            # PostgreSQL user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}                    # PostgreSQL password
+      DB_PORT_TARGET: ${DB_PORT_TARGET}                          # Internal port for PostgreSQL
     ports:
-      - "${DB_PORT_SOURCE}:${DB_PORT_TARGET}"
+      - "${DB_PORT_SOURCE}:${DB_PORT_TARGET}"                    # Host:Container port mapping for database
     volumes:
-      - pgdata-dev:/var/lib/postgresql/data
+      - pgdata-dev:/var/lib/postgresql/data                      # Persist database data
+  
+  # API Gateway service (FastAPI)
+  apigateway-dev:
+    build:
+      context: ../../ebezard-apigateway
+      dockerfile: Dockerfile-dev
+    container_name: ${PROJECT_NAME}-apigateway-dev
+    env_file:
+      - .env
+    ports:
+      - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"     # Host:Container port mapping for API Gateway
+    volumes:
+      - ../../ebezard-apigateway/app:/app/app                    # Mount API Gateway source code
+
+  # Landing service (React)
+  landing-dev:
+    build:
+      context: ../../ebezard-landing/frontend
+      dockerfile: Dockerfile-dev
+      args:
+        LANDING_PORT_TARGET: ${LANDING_PORT_TARGET}
+    container_name: ${PROJECT_NAME}-landing-dev
+    env_file:
+      - .env
+    environment:
+      VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}              # API Gateway URL for landing
+      VITE_PROJECT_NAME: ${PROJECT_NAME}                         # Project name for landing branding
+      LANDING_PORT_TARGET: ${LANDING_PORT_TARGET}                # Internal port for landing
+    ports:
+      - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"          # Host:Container port mapping for landing
+    volumes:
+      - ../../ebezard-landing/frontend:/app                      # Mount landing source code
+      - /app/node_modules                                        # Persist node_modules for faster installs
+    depends_on:
+      - apigateway-dev          
+
+  # # Marketplace service (React)
+  # marketplace-dev:
+  #   build:
+  #     context: ../../ebezard-marketplace
+  #     dockerfile: Dockerfile-dev
+  #     args:
+  #       MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+  #   container_name: ${PROJECT_NAME}-marketplace-dev
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}              # API Gateway URL for marketplace
+  #     VITE_PROJECT_NAME: ${PROJECT_NAME}                         # Project name for marketplace branding
+  #     MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}        # Internal port for marketplace
+  #   ports:
+  #     - "${MARKETPLACE_PORT_SOURCE}:${MARKETPLACE_PORT_TARGET}"  # Host:Container port mapping for marketplace
+  #   volumes:
+  #     - ../../ebezard-marketplace:/app                           # Mount marketplace source code
+  #     - /app/node_modules                                        # Persist node_modules for faster installs
+  #   depends_on:
+  #     - apigateway-dev  
+
+  # # SP service (Site Provider)
+  # sp-dev:
+  #   build:
+  #     context: ../../ebezard-sp
+  #     dockerfile: Dockerfile-dev
+  #     args:
+  #       SP_PORT_TARGET: ${SP_PORT_TARGET}
+  #   container_name: ${PROJECT_NAME}-sp-dev
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     SP_PORT_TARGET: ${SP_PORT_TARGET}                          # Internal port for SP
+  #     SP_BASE_URL: ${SP_BASE_URL}                               # SP base URL for API Gateway
+  #   ports:
+  #     - "${SP_PORT_SOURCE}:${SP_PORT_TARGET}"                    # Host:Container port mapping for SP
+  #   volumes:
+  #     - ../../ebezard-sp:/app                                   # Mount SP source code
+  #     - /app/node_modules                                       # Persist node_modules for faster installs
+  #   depends_on:
+  #     - apigateway-dev   
+
+  # Auth database service (PostgreSQL)
+  db-auth:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}-auth-db-dev
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}                                # PostgreSQL database name for Auth
+      POSTGRES_USER: ${AUTH_DB_USER}                              # PostgreSQL user for Auth
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}                      # PostgreSQL password for Auth
+      DB_PORT_TARGET: ${AUTH_DB_PORT_TARGET}                      # Internal port for PostgreSQL
+    ports:
+      - "${AUTH_DB_PORT_SOURCE}:${AUTH_DB_PORT_TARGET}"           # Host:Container port mapping for Auth database
+    volumes:
+      - pgdata-auth:/var/lib/postgresql/data                      # Persist Auth database data
+
+  # Auth service (Django OAuth2)
+  auth-dev:
+    build:
+      context: ../../ebezard-auth
+      dockerfile: Dockerfile-dev
+    container_name: ${PROJECT_NAME}-auth-dev
+    env_file:
+      - .env
+    environment:
+      DJANGO_SUPERUSER_USERNAME: ${AUTH_DJANGO_SUPERUSER_USERNAME}      # Django superuser username for Auth
+      DJANGO_SUPERUSER_EMAIL: ${AUTH_DJANGO_SUPERUSER_EMAIL}            # Django superuser email for Auth
+      DJANGO_SUPERUSER_PASSWORD: ${AUTH_DJANGO_SUPERUSER_PASSWORD}      # Django superuser password for Auth
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}                           # Database connection string for Auth
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}                               # Django secret key for Auth
+      AUTH_DEBUG: ${AUTH_DEBUG}                                         # Debug mode for Auth
+      ALLOWED_HOSTS_AUTH: ${ALLOWED_HOSTS_AUTH}                         # Allowed hosts for Auth
+    ports:
+      - "${AUTH_PORT_SOURCE}:${AUTH_PORT_TARGET}"
+    volumes:
+      - ../../ebezard-auth:/app
+    command: >
+      sh -c "/wait-for-it.sh db-auth:5432 -- python manage.py migrate &&
+            python manage.py collectstatic --noinput &&
+            python manage.py runserver 0.0.0.0:${AUTH_PORT_TARGET}"
+    depends_on:
+      - db-auth
 
 volumes:
-  pgdata-dev:
+  pgdata-dev:                                                    # Named volume for main PostgreSQL data
+  pgdata-auth:                                                   # Named volume for Auth PostgreSQL data

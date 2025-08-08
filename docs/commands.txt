@@ -1,6 +1,11 @@
 docker compose exec backend chmod +x /app/scripts/reset_db_and_migrations.sh   # (solo la prima volta)
 docker compose exec backend /app/scripts/reset_db_and_migrations.sh
 
+docker compose exec backend /app/scripts/reset_db_and_migrations.sh ( auth service ) 
+docker compose exec backend /app/scripts/create_oauth_application.sh ( auth service ) 
+
+Client ID: 4FOWbcoeTg2Fu5DKFKFSk6pcngzJoEG42tT6fVgS
+Client Secret: pbkdf2_sha256$1000000$1jw5ghHFhTyJS1s8Km43Ca$CY52dgOsz1RC2dnx2jizqJpd0XOStGEBjWO+5r1HlRE=
 
 Ambiente di sviluppo (dev):
 

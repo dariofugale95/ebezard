@@ -1,17 +1,14 @@
 ###############################################
-# GESTIONE VARIABILI D'AMBIENTE (BACKEND E FRONTEND)
+# ENVIRONMENT VARIABLE MANAGEMENT (BACKEND AND FRONTEND)
 #
-# Tutte le variabili di configurazione (backend e frontend, incluse le porte) sono centralizzate nei file:
-#   .env.dev  (per sviluppo, in questa stessa cartella)
-#   .env.prod (per produzione, in questa stessa cartella)
+# All configuration variables (backend and frontend, including ports) are centralized in:
+#   .env.dev  (for development, in this folder)
+#   .env.prod (for production, in this folder)
 #
-# Modifica questi file per cambiare le porte o le variabili di backend e frontend.
-# I docker-compose usano solo questi file come env_file per tutti i servizi.
+# Edit these files to change ports or variables for backend and frontend.
+# Docker Compose uses only these files as env_file for all services.
 ###############################################
 services:
-  # Nome progetto/stack per i container
-  # Per ambiente PROD: ebezard-prod
-  # (Impostato tramite "name" o "-p" da CLI, oppure con "COMPOSE_PROJECT_NAME" nel file .env)
   backend-prod:
     build:
       context: ../../ebezard-backend
@@ -34,6 +31,18 @@ services:
     depends_on:
       - db-prod
 
+  apigateway-prod:
+    build:
+      context: ../../ebezard-apigateway
+      dockerfile: Dockerfile-prod
+    container_name: ${PROJECT_NAME}-apigateway-prod
+    env_file:
+      - .env
+    ports:
+      - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"  # Host:Container port mapping for API Gateway
+    volumes:
+      - ../../ebezard-apigateway/app:/app/app
+
   frontend-prod:
     build:
       context: ../../ebezard-frontend/frontend
@@ -54,6 +63,68 @@ services:
     depends_on:
       - backend-prod
 
+  landing-prod:
+    build:
+      context: ../../ebezard-landing/frontend
+      dockerfile: Dockerfile-prod
+      args:
+        LANDING_PORT_TARGET: ${LANDING_PORT_TARGET}
+    container_name: ${PROJECT_NAME}-landing-prod
+    env_file:
+      - .env
+    environment:
+      VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}
+      VITE_PROJECT_NAME: ${PROJECT_NAME}
+      LANDING_PORT_TARGET: ${LANDING_PORT_TARGET}
+    ports:
+      - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"
+    volumes:
+      - ../../ebezard-landing:/app
+      - /app/node_modules
+    depends_on:
+      - apigateway-prod
+
+  marketplace-prod:
+    build:
+      context: ../../ebezard-marketplace
+      dockerfile: Dockerfile-prod
+      args:
+        MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+    container_name: ${PROJECT_NAME}-marketplace-prod
+    env_file:
+      - .env
+    environment:
+      VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}
+      VITE_PROJECT_NAME: ${PROJECT_NAME}
+      MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+    ports:
+      - "${MARKETPLACE_PORT_SOURCE}:${MARKETPLACE_PORT_TARGET}"
+    volumes:
+      - ../../ebezard-marketplace:/app
+      - /app/node_modules
+    depends_on:
+      - apigateway-prod
+
+  sp-prod:
+    build:
+      context: ../../ebezard-sp
+      dockerfile: Dockerfile-prod
+      args:
+        SP_PORT_TARGET: ${SP_PORT_TARGET}
+    container_name: ${PROJECT_NAME}-sp-prod
+    env_file:
+      - .env
+    environment:
+      SP_PORT_TARGET: ${SP_PORT_TARGET}
+      SP_BASE_URL: ${SP_BASE_URL}
+    ports:
+      - "${SP_PORT_SOURCE}:${SP_PORT_TARGET}"
+    volumes:
+      - ../../ebezard-sp:/app
+      - /app/node_modules
+    depends_on:
+      - apigateway-prod
+
   db-prod:
     image: postgres:16-alpine
     container_name: ${PROJECT_NAME}-db-prod
@@ -69,6 +140,47 @@ services:
     volumes:
       - pgdata-prod:/var/lib/postgresql/data
 
+  # Auth database service (PostgreSQL)
+  db-auth:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}-auth-db-prod
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME}
+      POSTGRES_USER: ${AUTH_DB_USER}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD}
+    ports:
+      - "${AUTH_DB_PORT_SOURCE}:5432"
+    volumes:
+      - pgdata-auth:/var/lib/postgresql/data
+
+  auth-prod:
+    build:
+      context: ../../ebezard-auth
+      dockerfile: Dockerfile-prod
+    container_name: ${PROJECT_NAME}-auth-prod
+    env_file:
+      - .env
+    environment:
+      DJANGO_SUPERUSER_USERNAME: ${AUTH_DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL: ${AUTH_DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${AUTH_DJANGO_SUPERUSER_PASSWORD}
+      AUTH_DATABASE_URL: ${AUTH_DATABASE_URL}
+      AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
+      AUTH_DEBUG: ${AUTH_DEBUG}
+      ALLOWED_HOSTS_AUTH: ${ALLOWED_HOSTS_AUTH}
+    ports:
+      - "${AUTH_PORT_SOURCE}:${AUTH_PORT_TARGET}"
+    volumes:
+      - ../../ebezard-auth:/app
+    command: >
+      sh -c "/wait-for-it.sh db-auth:5432 -- python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn authserver.wsgi:application --bind 0.0.0.0:${AUTH_PORT_TARGET} --workers 3"
+    depends_on:
+      - db-auth
 
 volumes:
-  pgdata-prod:
+  pgdata-dev:                                                    # Named volume for main PostgreSQL data
+  pgdata-auth:                                                   # Named volume for Auth PostgreSQL data
