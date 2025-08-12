@@ -9,7 +9,7 @@ services:
     build:
       context: ../../ebezard-backend
       dockerfile: Dockerfile-dev
-    container_name: ${PROJECT_NAME}-backend-dev
+    container_name: ${PROJECT_NAME}-${BACKEND_HOSTNAME}
     env_file:
       - .env
     environment:
@@ -74,10 +74,14 @@ services:
     container_name: ${PROJECT_NAME}-apigateway-dev
     env_file:
       - .env
+    environment:
+      REDIS_URL: ${REDIS_URL}
     ports:
       - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"     # Host:Container port mapping for API Gateway
     volumes:
       - ../../ebezard-apigateway/app:/app/app                    # Mount API Gateway source code
+    depends_on:
+      - redis-dev
 
   # Landing service (React)
   landing-dev:
@@ -165,7 +169,7 @@ services:
     build:
       context: ../../ebezard-auth
       dockerfile: Dockerfile-dev
-    container_name: ${PROJECT_NAME}-auth-dev
+    container_name: ${PROJECT_NAME}-${AUTH_HOSTNAME}
     env_file:
       - .env
     environment:
@@ -187,6 +191,16 @@ services:
     depends_on:
       - db-auth
 
+  redis-dev:
+    image: redis:7
+    restart: always
+    container_name: ${PROJECT_NAME}-${REDIS_HOSTNAME}
+    ports:
+      - "${REDIS_PORT_SOURCE}:${REDIS_PORT_TARGET}"
+    volumes:
+      - redisdata:/data
+
 volumes:
   pgdata-dev:                                                    # Named volume for main PostgreSQL data
   pgdata-auth:                                                   # Named volume for Auth PostgreSQL data
+  redisdata:                                                     # Named volume for Redis data
