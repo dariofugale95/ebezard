@@ -23,29 +23,29 @@ services:
     ports:
       - "${BACKEND_PORT_SOURCE}:${BACKEND_PORT_TARGET}"
     volumes:
-      - ../../ebezard-backend:/app
-      - ../../ebezard-backend/media:/app/media
+      - ../../ebezard-backend:/app                               # Mount backend source code
+      - ../../ebezard-backend/media:/app/media                   # Mount media directory
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/backend-cert.pem:/certs/backend-cert.pem:ro
+      - ../../ca/keys/backend-key.pem:/certs/backend-key.pem:ro
     command: >
       sh -c "python manage.py collectstatic --noinput && \
              python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}"
     depends_on:
       - db-prod
 
-  apigateway-prod:
-    build:
-      context: ../../ebezard-apigateway
-      dockerfile: Dockerfile-prod
-    container_name: ${PROJECT_NAME}-apigateway-prod
-    env_file:
-      - .env
-    environment:
-      REDIS_URL: ${REDIS_URL}
+  nginx-backend-prod:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_BACKEND_HOST}-prod
     ports:
-      - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"  # Host:Container port mapping for API Gateway
+      - "${NGINX_BACKEND_PORT_SOURCE}:${NGINX_BACKEND_PORT_TARGET}"
     volumes:
-      - ../../ebezard-apigateway/app:/app/app
+      - ./deploy/prod/nginx-backend.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_BACKEND_CERT_PATH}:/etc/nginx/certs/backend-cert.pem:ro
+      - ${NGINX_BACKEND_KEY_PATH}:/etc/nginx/certs/backend-key.pem:ro
+      - ${NGINX_BACKEND_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
     depends_on:
-      - redis-prod
+      - backend-prod
 
   frontend-prod:
     build:
@@ -62,10 +62,73 @@ services:
     ports:
       - "${FRONTEND_PORT_SOURCE}:${FRONTEND_PORT_TARGET}"
     volumes:
-      - ../../ebezard-frontend/frontend:/app
-      - /app/node_modules
+      - ../../ebezard-frontend/frontend:/app                     # Mount frontend source code
+      - /app/node_modules                                        # Persist node_modules for faster installs
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/frontend-cert.pem:/certs/frontend-cert.pem:ro
+      - ../../ca/keys/frontend-key.pem:/certs/frontend-key.pem:ro
     depends_on:
       - backend-prod
+
+  nginx-frontend-prod:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_FRONTEND_HOST}-prod
+    ports:
+      - "${NGINX_FRONTEND_PORT_SOURCE}:${NGINX_FRONTEND_PORT_TARGET}"
+    volumes:
+      - ./deploy/prod/nginx-frontend.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_FRONTEND_CERT_PATH}:/etc/nginx/certs/frontend-cert.pem:ro
+      - ${NGINX_FRONTEND_KEY_PATH}:/etc/nginx/certs/frontend-key.pem:ro
+      - ${NGINX_FRONTEND_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - frontend-prod
+
+  db-prod:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME}-db-prod
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PORT_TARGET: ${DB_PORT_TARGET}
+    ports:
+      - "${DB_PORT_SOURCE}:${DB_PORT_TARGET}"
+    volumes:
+      - pgdata-prod:/var/lib/postgresql/data
+
+  apigateway-prod:
+    build:
+      context: ../../ebezard-apigateway
+      dockerfile: Dockerfile-prod
+    container_name: ${PROJECT_NAME}-apigateway-prod
+    env_file:
+      - .env
+    environment:
+      REDIS_URL: ${REDIS_URL}
+    ports:
+      - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"  # Host:Container port mapping for API Gateway
+    volumes:
+      - ../../ebezard-apigateway/app:/app/app                    # Mount API Gateway source code
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/apigateway-cert.pem:/certs/apigateway-cert.pem:ro
+      - ../../ca/keys/apigateway-key.pem:/certs/apigateway-key.pem:ro
+    depends_on:
+      - redis-prod
+
+  nginx-apigateway-prod:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_APIGATEWAY_HOST}-prod
+    ports:
+      - "${NGINX_APIGATEWAY_PORT_SOURCE}:${NGINX_APIGATEWAY_PORT_TARGET}"
+    volumes:
+      - ./deploy/prod/nginx-apigateway.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_APIGATEWAY_CERT_PATH}:/etc/nginx/certs/apigateway-cert.pem:ro
+      - ${NGINX_APIGATEWAY_KEY_PATH}:/etc/nginx/certs/apigateway-key.pem:ro
+      - ${NGINX_APIGATEWAY_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - apigateway-prod
 
   landing-prod:
     build:
@@ -83,66 +146,99 @@ services:
     ports:
       - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"
     volumes:
-      - ../../ebezard-landing:/app
-      - /app/node_modules
+      - ../../ebezard-landing/frontend:/app                      # Mount landing source code
+      - /app/node_modules                                        # Persist node_modules for faster installs
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/backend-cert.pem:/certs/backend-cert.pem:ro
+      - ../../ca/keys/backend-key.pem:/certs/backend-key.pem:ro
     depends_on:
       - apigateway-prod
 
-  marketplace-prod:
-    build:
-      context: ../../ebezard-marketplace
-      dockerfile: Dockerfile-prod
-      args:
-        MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
-    container_name: ${PROJECT_NAME}-marketplace-prod
-    env_file:
-      - .env
-    environment:
-      VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}
-      VITE_PROJECT_NAME: ${PROJECT_NAME}
-      MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+  nginx-landing-prod:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_LANDING_HOST}-prod
     ports:
-      - "${MARKETPLACE_PORT_SOURCE}:${MARKETPLACE_PORT_TARGET}"
+      - "${NGINX_LANDING_PORT_SOURCE}:${NGINX_LANDING_PORT_TARGET}"
     volumes:
-      - ../../ebezard-marketplace:/app
-      - /app/node_modules
+      - ./deploy/prod/nginx-landing.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_LANDING_CERT_PATH}:/etc/nginx/certs/landing-cert.pem:ro
+      - ${NGINX_LANDING_KEY_PATH}:/etc/nginx/certs/landing-key.pem:ro
+      - ${NGINX_LANDING_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
     depends_on:
-      - apigateway-prod
+      - landing-prod
 
-  sp-prod:
-    build:
-      context: ../../ebezard-sp
-      dockerfile: Dockerfile-prod
-      args:
-        SP_PORT_TARGET: ${SP_PORT_TARGET}
-    container_name: ${PROJECT_NAME}-sp-prod
-    env_file:
-      - .env
-    environment:
-      SP_PORT_TARGET: ${SP_PORT_TARGET}
-      SP_BASE_URL: ${SP_BASE_URL}
-    ports:
-      - "${SP_PORT_SOURCE}:${SP_PORT_TARGET}"
-    volumes:
-      - ../../ebezard-sp:/app
-      - /app/node_modules
-    depends_on:
-      - apigateway-prod
+  # marketplace-prod:
+  #   build:
+  #     context: ../../ebezard-marketplace
+  #     dockerfile: Dockerfile-prod
+  #     args:
+  #       MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+  #   container_name: ${PROJECT_NAME}-marketplace-prod
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}
+  #     VITE_PROJECT_NAME: ${PROJECT_NAME}
+  #     MARKETPLACE_PORT_TARGET: ${MARKETPLACE_PORT_TARGET}
+  #   ports:
+  #     - "${MARKETPLACE_PORT_SOURCE}:${MARKETPLACE_PORT_TARGET}"
+  #   volumes:
+  #     - ../../ebezard-marketplace:/app
+  #     - /app/node_modules
+  #     - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+  #     - ../../ca/certs/marketplace-cert.pem:/certs/marketplace-cert.pem:ro
+  #     - ../../ca/keys/marketplace-key.pem:/certs/marketplace-key.pem:ro
+  #   depends_on:
+  #     - apigateway-prod
 
-  db-prod:
-    image: postgres:16-alpine
-    container_name: ${PROJECT_NAME}-db-prod
-    env_file:
-      - .env
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_PORT_TARGET: ${DB_PORT_TARGET}
-    ports:
-      - "${DB_PORT_SOURCE}:${DB_PORT_TARGET}"
-    volumes:
-      - pgdata-prod:/var/lib/postgresql/data
+  # nginx-marketplace-prod:
+  #   image: nginx:latest
+  #   container_name: ${PROJECT_NAME}-${NGINX_MARKETPLACE_HOST}-prod
+  #   ports:
+  #     - "${NGINX_MARKETPLACE_PORT_SOURCE}:${NGINX_MARKETPLACE_PORT_TARGET}"
+  #   volumes:
+  #     - ./deploy/prod/nginx-marketplace.conf:/etc/nginx/nginx.conf:ro
+  #     - ${NGINX_MARKETPLACE_CERT_PATH}:/etc/nginx/certs/marketplace-cert.pem:ro
+  #     - ${NGINX_MARKETPLACE_KEY_PATH}:/etc/nginx/certs/marketplace-key.pem:ro
+  #     - ${NGINX_MARKETPLACE_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+  #   depends_on:
+  #     - marketplace-prod
+
+  # sp-prod:
+  #   build:
+  #     context: ../../ebezard-sp
+  #     dockerfile: Dockerfile-prod
+  #     args:
+  #       SP_PORT_TARGET: ${SP_PORT_TARGET}
+  #   container_name: ${PROJECT_NAME}-sp-prod
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     SP_PORT_TARGET: ${SP_PORT_TARGET}
+  #     SP_BASE_URL: ${SP_BASE_URL}
+  #   ports:
+  #     - "${SP_PORT_SOURCE}:${SP_PORT_TARGET}"
+  #   volumes:
+  #     - ../../ebezard-sp:/app
+  #     - /app/node_modules
+  #     - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+  #     - ../../ca/certs/sp-cert.pem:/certs/sp-cert.pem:ro
+  #     - ../../ca/keys/sp-key.pem:/certs/sp-key.pem:ro
+  #   depends_on:
+  #     - apigateway-prod
+
+  # nginx-sp-prod:
+  #   image: nginx:latest
+  #   container_name: ${PROJECT_NAME}-${NGINX_SP_HOST}-prod
+  #   ports:
+  #     - "${NGINX_SP_PORT_SOURCE}:${NGINX_SP_PORT_TARGET}"
+  #   volumes:
+  #     - ./deploy/prod/nginx-sp.conf:/etc/nginx/nginx.conf:ro
+  #     - ${NGINX_SP_CERT_PATH}:/etc/nginx/certs/sp-cert.pem:ro
+  #     - ${NGINX_SP_KEY_PATH}:/etc/nginx/certs/sp-key.pem:ro
+  #     - ${NGINX_SP_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+  #   depends_on:
+  #     - sp-prod
 
   # Auth database service (PostgreSQL)
   db-auth:
@@ -184,6 +280,19 @@ services:
              gunicorn authserver.wsgi:application --bind 0.0.0.0:${AUTH_PORT_TARGET} --workers 3"
     depends_on:
       - db-auth
+
+  nginx-auth-prod:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_AUTH_HOST}-prod
+    ports:
+      - "${NGINX_AUTH_PORT_SOURCE}:${NGINX_AUTH_PORT_TARGET}"
+    volumes:
+      - ./deploy/prod/nginx-auth.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_AUTH_CERT_PATH}:/etc/nginx/certs/auth-cert.pem:ro
+      - ${NGINX_AUTH_KEY_PATH}:/etc/nginx/certs/auth-key.pem:ro
+      - ${NGINX_AUTH_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - auth-prod
 
   redis-prod:
     image: redis:7

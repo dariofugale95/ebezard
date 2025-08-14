@@ -70,3 +70,10 @@ coverage.xml
 
 # Ignore Jupyter
 .ipynb_checkpoints/
+
+# Exclude certs
+*.pem
+*.crt
+*.key
+*.csr
+*.srl

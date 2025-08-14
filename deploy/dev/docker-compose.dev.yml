@@ -21,11 +21,27 @@ services:
     volumes:
       - ../../ebezard-backend:/app                               # Mount backend source code
       - ../../ebezard-backend/media:/app/media                   # Mount media directory
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/backend-cert.pem:/certs/backend-cert.pem:ro
+      - ../../ca/keys/backend-key.pem:/certs/backend-key.pem:ro
     command: >
       sh -c "python manage.py collectstatic --noinput && \
              python manage.py runserver 0.0.0.0:${BACKEND_PORT_TARGET}" # Collect static files and start Django server
     depends_on:
       - db-dev                                                   # Wait for database to be ready
+
+  nginx-backend-dev:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_BACKEND_HOST}-dev
+    ports:
+      - "${NGINX_BACKEND_PORT_SOURCE}:${NGINX_BACKEND_PORT_TARGET}"
+    volumes:
+      - ./deploy/dev/nginx-backend.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_BACKEND_CERT_PATH}:/etc/nginx/certs/backend-cert.pem:ro
+      - ${NGINX_BACKEND_KEY_PATH}:/etc/nginx/certs/backend-key.pem:ro
+      - ${NGINX_BACKEND_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - backend-dev
 
   # Frontend service (React)
   frontend-dev:
@@ -47,8 +63,24 @@ services:
     volumes:
       - ../../ebezard-frontend/frontend:/app                     # Mount frontend source code
       - /app/node_modules                                        # Persist node_modules for faster installs
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/frontend-cert.pem:/certs/frontend-cert.pem:ro
+      - ../../ca/keys/frontend-key.pem:/certs/frontend-key.pem:ro
     depends_on:
       - backend-dev                                              # Wait for backend to be ready
+
+  nginx-frontend-dev:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_FRONTEND_HOST}-dev
+    ports:
+      - "${NGINX_FRONTEND_PORT_SOURCE}:${NGINX_FRONTEND_PORT_TARGET}"
+    volumes:
+      - ./deploy/dev/nginx-frontend.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_FRONTEND_CERT_PATH}:/etc/nginx/certs/frontend-cert.pem:ro
+      - ${NGINX_FRONTEND_KEY_PATH}:/etc/nginx/certs/frontend-key.pem:ro
+      - ${NGINX_FRONTEND_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - frontend-dev
 
   # Database service (PostgreSQL)
   db-dev:
@@ -80,8 +112,24 @@ services:
       - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"     # Host:Container port mapping for API Gateway
     volumes:
       - ../../ebezard-apigateway/app:/app/app                    # Mount API Gateway source code
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/apigateway-cert.pem:/certs/apigateway-cert.pem:ro
+      - ../../ca/keys/apigateway-key.pem:/certs/apigateway-key.pem:ro
     depends_on:
       - redis-dev
+  
+  nginx-apigateway-dev:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_APIGATEWAY_HOST}-dev
+    ports:
+      - "${NGINX_APIGATEWAY_PORT_SOURCE}:${NGINX_APIGATEWAY_PORT_TARGET}"
+    volumes:
+      - ./deploy/dev/nginx-apigateway.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_APIGATEWAY_CERT_PATH}:/etc/nginx/certs/apigateway-cert.pem:ro
+      - ${NGINX_APIGATEWAY_KEY_PATH}:/etc/nginx/certs/apigateway-key.pem:ro
+      - ${NGINX_APIGATEWAY_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - apigateway-dev
 
   # Landing service (React)
   landing-dev:
@@ -102,8 +150,24 @@ services:
     volumes:
       - ../../ebezard-landing/frontend:/app                      # Mount landing source code
       - /app/node_modules                                        # Persist node_modules for faster installs
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/backend-cert.pem:/certs/backend-cert.pem:ro
+      - ../../ca/keys/backend-key.pem:/certs/backend-key.pem:ro
     depends_on:
       - apigateway-dev          
+
+  nginx-landing-dev:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_LANDING_HOST}-dev
+    ports:
+      - "${NGINX_LANDING_PORT_SOURCE}:${NGINX_LANDING_PORT_TARGET}"
+    volumes:
+      - ./deploy/dev/nginx-landing.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_LANDING_CERT_PATH}:/etc/nginx/certs/landing-cert.pem:ro
+      - ${NGINX_LANDING_KEY_PATH}:/etc/nginx/certs/landing-key.pem:ro
+      - ${NGINX_LANDING_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - landing-dev
 
   # # Marketplace service (React)
   # marketplace-dev:
@@ -124,8 +188,24 @@ services:
   #   volumes:
   #     - ../../ebezard-marketplace:/app                           # Mount marketplace source code
   #     - /app/node_modules                                        # Persist node_modules for faster installs
+  #     - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+  #     - ../../ca/certs/marketplace-cert.pem:/certs/marketplace-cert.pem:ro
+  #     - ../../ca/keys/marketplace-key.pem:/certs/marketplace-key.pem:ro
   #   depends_on:
   #     - apigateway-dev  
+
+  # nginx-marketplace-dev:
+  #   image: nginx:latest
+  #   container_name: ${PROJECT_NAME}-${NGINX_MARKETPLACE_HOST}-dev
+  #   ports:
+  #     - "${NGINX_MARKETPLACE_PORT_SOURCE}:${NGINX_MARKETPLACE_PORT_TARGET}"
+  #   volumes:
+  #     - ./deploy/dev/nginx-marketplace.conf:/etc/nginx/nginx.conf:ro
+  #     - ${NGINX_MARKETPLACE_CERT_PATH}:/etc/nginx/certs/marketplace-cert.pem:ro
+  #     - ${NGINX_MARKETPLACE_KEY_PATH}:/etc/nginx/certs/marketplace-key.pem:ro
+  #     - ${NGINX_MARKETPLACE_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+  #   depends_on:
+  #     - marketplace-dev
 
   # # SP service (Site Provider)
   # sp-dev:
@@ -145,8 +225,24 @@ services:
   #   volumes:
   #     - ../../ebezard-sp:/app                                   # Mount SP source code
   #     - /app/node_modules                                       # Persist node_modules for faster installs
+  #     - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+  #     - ../../ca/certs/sp-cert.pem:/certs/sp-cert.pem:ro
+  #     - ../../ca/keys/sp-key.pem:/certs/sp-key.pem:ro
   #   depends_on:
   #     - apigateway-dev   
+
+  # nginx-sp-dev:
+  #   image: nginx:latest
+  #   container_name: ${PROJECT_NAME}-${NGINX_SP_HOST}-dev
+  #   ports:
+  #     - "${NGINX_SP_PORT_SOURCE}:${NGINX_SP_PORT_TARGET}"
+  #   volumes:
+  #     - ./deploy/dev/nginx-sp.conf:/etc/nginx/nginx.conf:ro
+  #     - ${NGINX_SP_CERT_PATH}:/etc/nginx/certs/sp-cert.pem:ro
+  #     - ${NGINX_SP_KEY_PATH}:/etc/nginx/certs/sp-key.pem:ro
+  #     - ${NGINX_SP_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+  #   depends_on:
+  #     - sp-dev
 
   # Auth database service (PostgreSQL)
   db-auth:
@@ -184,12 +280,28 @@ services:
       - "${AUTH_PORT_SOURCE}:${AUTH_PORT_TARGET}"
     volumes:
       - ../../ebezard-auth:/app
+      - ../../ca/certs/ca-cert.pem:/certs/ca-cert.pem:ro
+      - ../../ca/certs/auth-cert.pem:/certs/auth-cert.pem:ro
+      - ../../ca/keys/auth-key.pem:/certs/auth-key.pem:ro
     command: >
       sh -c "/wait-for-it.sh db-auth:5432 -- python manage.py migrate &&
             python manage.py collectstatic --noinput &&
             python manage.py runserver 0.0.0.0:${AUTH_PORT_TARGET}"
     depends_on:
       - db-auth
+
+  nginx-auth-dev:
+    image: nginx:latest
+    container_name: ${PROJECT_NAME}-${NGINX_AUTH_HOST}-dev
+    ports:
+      - "${NGINX_AUTH_PORT_SOURCE}:${NGINX_AUTH_PORT_TARGET}"
+    volumes:
+      - ./deploy/dev/nginx-auth.conf:/etc/nginx/nginx.conf:ro
+      - ${NGINX_AUTH_CERT_PATH}:/etc/nginx/certs/auth-cert.pem:ro
+      - ${NGINX_AUTH_KEY_PATH}:/etc/nginx/certs/auth-key.pem:ro
+      - ${NGINX_AUTH_CA_PATH}:/etc/nginx/certs/ca-cert.pem:ro
+    depends_on:
+      - auth-dev
 
   redis-dev:
     image: redis:7
@@ -199,7 +311,7 @@ services:
       - "${REDIS_PORT_SOURCE}:${REDIS_PORT_TARGET}"
     volumes:
       - redisdata:/data
-
+      
 volumes:
   pgdata-dev:                                                    # Named volume for main PostgreSQL data
   pgdata-auth:                                                   # Named volume for Auth PostgreSQL data
