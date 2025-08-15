@@ -77,3 +77,4 @@ coverage.xml
 *.key
 *.csr
 *.srl
+*.p12
