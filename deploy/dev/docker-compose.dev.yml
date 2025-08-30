@@ -76,25 +76,12 @@ services:
       - .env
     environment:
       REDIS_URL: ${REDIS_URL}
-    # ports:
-    #   - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"     # Host:Container port mapping for API Gateway
+    ports:
+      - "${APIGATEWAY_PORT_SOURCE}:${APIGATEWAY_PORT_TARGET}"    # Host:Container port mapping for API Gateway
     volumes:
       - ../../ebezard-apigateway/app:/app/app                    # Mount API Gateway source code
     depends_on:
       - redis-dev
-  
-  nginx-apigateway-dev:
-    image: nginx:latest
-    container_name: ${PROJECT_NAME}-${NGINX_APIGATEWAY_HOST}-dev
-    ports:
-      - "${NGINX_APIGATEWAY_PORT_SOURCE}:${NGINX_APIGATEWAY_PORT_TARGET}"
-    volumes:
-      - ./nginx-apigateway.conf:/etc/nginx/conf.d/apigateway.conf:ro
-      - ../../ca/certs/nginx-apigateway-dev-cert.pem:${NGINX_APIGATEWAY_CERT_PATH}:ro
-      - ../../ca/keys/nginx-apigateway-dev-key.pem:${NGINX_APIGATEWAY_KEY_PATH}:ro
-      - ../../ca/certs/ca-cert.pem:${NGINX_APIGATEWAY_CA_PATH}:ro
-    depends_on:
-      - apigateway-dev
 
   # Landing service (React)
   landing-dev:
@@ -107,12 +94,10 @@ services:
     env_file:
       - .env
     environment:
-      VITE_API_GATEWAY_URL: ${VITE_API_GATEWAY_URL}              # API Gateway URL for landing
+      VITE_API_GATEWAY_URL: ${API_GATEWAY_URL}                   # API Gateway URL for landing
       VITE_PROJECT_NAME: ${PROJECT_NAME}                         # Project name for landing branding
-      LANDING_PORT_TARGET: ${LANDING_PORT_TARGET}                # Internal port for landing
-      HOST: 0.0.0.0
     ports:
-     - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"          # Host:Container port mapping for landing
+     - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"           # Host:Container port mapping for landing
     volumes:
       - ../../ebezard-landing/frontend:/app                      # Mount landing source code
       - /app/node_modules                                        # Persist node_modules for faster installs
