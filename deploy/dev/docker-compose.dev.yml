@@ -95,7 +95,8 @@ services:
       - .env
     environment:
       VITE_API_GATEWAY_URL: ${API_GATEWAY_URL}                   # API Gateway URL for landing
-      VITE_PROJECT_NAME: ${PROJECT_NAME}                         # Project name for landing branding
+      VITE_FRONTEND_URL: ${VITE_FRONTEND_URL}                     # Frontend URL for landing
+      VITE_PROJECT_NAME: ${PROJECT_NAME}                           # Project name for landing branding
     ports:
      - "${LANDING_PORT_SOURCE}:${LANDING_PORT_TARGET}"           # Host:Container port mapping for landing
     volumes:
